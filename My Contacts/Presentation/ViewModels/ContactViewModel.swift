@@ -58,15 +58,6 @@ import UIKit
         fetchContacts()
     }
     
-    func saveImage(imageUrl: String = "") async -> String? {
-        if imageUrl.isEmpty == true {
-            let newImageUrl = await getImageUrl()
-            return newImageUrl ?? ""
-        }
-        
-        return imageUrl
-    }
-    
     @objc func deleteContact(_ id: UUID) {
         if let contactToDelete = contacts.first(where: { $0.id == id }) {
             context.delete(contactToDelete)
@@ -86,6 +77,15 @@ import UIKit
 
         saveContext()
         fetchContacts()
+    }
+    
+    func saveImage(imageUrl: String = "") async -> String? {
+        if imageUrl.isEmpty == true {
+            let newImageUrl = await getImageUrl()
+            return newImageUrl ?? ""
+        }
+        
+        return imageUrl
     }
     
     private func saveContext() {
