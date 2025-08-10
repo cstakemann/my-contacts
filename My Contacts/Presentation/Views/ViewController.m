@@ -57,8 +57,8 @@ NSString *cellId = @"cellId";
 }
 
 -(void)handleContactsUpdate {
-    NSArray *contacts = [self.viewModel getContacts];
-    self.filteredContacts = contacts;
+    self.contacts = [self.viewModel getContacts];
+    self.filteredContacts = self.contacts;
     dispatch_async(dispatch_get_main_queue(), ^{
         [self.tableView reloadData];
     });
