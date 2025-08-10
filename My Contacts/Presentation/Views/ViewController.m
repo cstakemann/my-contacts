@@ -6,13 +6,16 @@
 //
 
 #import "ViewController.h"
-//#import "Contact.h"
 #import "My_Contacts-Swift.h"
 @import SwiftUI;
 
-@interface ViewController ()
-//@property (strong, nonatomic) NSMutableArray<Contact *> *contacts;
+@interface ViewController () <UITableViewDelegate, UITableViewDataSource, UISearchResultsUpdating>
+
 @property (strong, nonatomic) ContactViewModel *viewModel;
+@property (nonatomic, strong) NSArray<ContactsDataEntity *> *contacts;
+@property (nonatomic, strong) NSArray<ContactsDataEntity *> *filteredContacts;
+@property (nonatomic, strong) UISearchController *searchController;
+
 @end
 
 @implementation ViewController
@@ -29,6 +32,19 @@ NSString *cellId = @"cellId";
     [self.tableView registerClass:UITableViewCell.class forCellReuseIdentifier:cellId];
     
     [self loadContacts];
+
+    self.contacts = [self.viewModel getContacts];
+    self.filteredContacts = self.contacts;
+    
+    // Configurar SearchController
+    self.searchController = [[UISearchController alloc] initWithSearchResultsController:nil];
+    self.searchController.obscuresBackgroundDuringPresentation = NO;
+    self.searchController.searchResultsUpdater = self;
+    self.searchController.searchBar.placeholder = @"Buscar contacto";
+    
+    // Agregar barra de búsqueda a la barra de navegación
+    self.navigationItem.searchController = self.searchController;
+    self.definesPresentationContext = YES;
     
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(handleContactsUpdate) name:@"contactsDidUpdate"
@@ -37,16 +53,12 @@ NSString *cellId = @"cellId";
 }
 
 - (void)loadContacts {
-    // Aquí cargas de Core Data vía ViewModel
-    // Pero como ViewModel está en Swift y usa @Published, deberías usar KVO o notificaciones
-    // Para simplificar, recarga tabla cuando view aparecer
-    
     [self.tableView reloadData];
 }
 
 -(void)handleContactsUpdate {
     NSArray *contacts = [self.viewModel getContacts];
-    NSLog(@"Contacts count: %lu", (unsigned long)contacts.count);
+    self.filteredContacts = contacts;
     dispatch_async(dispatch_get_main_queue(), ^{
         [self.tableView reloadData];
     });
@@ -74,32 +86,114 @@ NSString *cellId = @"cellId";
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    return [[self.viewModel getContacts] count];
+    return self.filteredContacts.count;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
-    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:cellId forIndexPath:indexPath];
-    
-    NSArray *contacts = [self.viewModel getContacts];
+    static NSString *cellId = @"cellId";
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:cellId];
+    if (!cell) {
+        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:cellId];
+    }
+
+    NSArray *contacts = self.filteredContacts;
     ContactsDataEntity *contact = contacts[indexPath.row];
     
-    NSString *fullName = [NSString stringWithFormat:@"%@ %@", contact.firstName, contact.lastName];
+    [self configureCell:cell withContact:contact];
     
-    cell.textLabel.text = fullName;
     return cell;
+}
+
+// Custom Contact cell
+- (void)configureCell:(UITableViewCell *)cell withContact:(ContactsDataEntity *)contact {
+    UIImageView *customImageView = [cell.contentView viewWithTag:999];
+    if (!customImageView) {
+        customImageView = [[UIImageView alloc] initWithFrame:CGRectMake(15, 10, 60, 60)];
+        customImageView.tag = 999;
+        customImageView.contentMode = UIViewContentModeScaleAspectFill;
+        customImageView.clipsToBounds = YES;
+        customImageView.layer.cornerRadius = 30;
+        [cell.contentView addSubview:customImageView];
+    }
+
+    cell.imageView.hidden = YES;
+
+    UILabel *nameLabel = [cell.contentView viewWithTag:1000];
+    if (!nameLabel) {
+        nameLabel = [[UILabel alloc] initWithFrame:CGRectMake(90, 10, cell.contentView.frame.size.width - 105, 60)];
+        nameLabel.tag = 1000;
+        nameLabel.font = [UIFont systemFontOfSize:17 weight:UIFontWeightRegular];
+        nameLabel.numberOfLines = 1;
+        [cell.contentView addSubview:nameLabel];
+    } else {
+        nameLabel.frame = CGRectMake(90, 10, cell.contentView.frame.size.width - 105, 60);
+    }
+    
+    NSString *fullName = [NSString stringWithFormat:@"%@ %@", contact.firstName, contact.lastName];
+    nameLabel.text = fullName;
+    
+    UIImage *placeholder = [UIImage systemImageNamed:@"person.crop.circle.fill"];
+
+    [KFHelper setImage:customImageView urlString:contact.imageUrl placeholder:placeholder];
+}
+
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    return 80;
 }
 
 // swipe to delete
 - (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle
 forRowAtIndexPath:(NSIndexPath *)indexPath {
     if (editingStyle == UITableViewCellEditingStyleDelete) {
-        [self.viewModel deleteContact:indexPath.row];
-
+        
+        ContactsDataEntity *contactToDelete = self.filteredContacts[indexPath.row];
+        
+        [self.viewModel deleteContact:contactToDelete.id];
+        self.contacts = [self.viewModel getContacts];
+        
+        [self updateFilteredContacts];
+        
         [tableView beginUpdates];
         [tableView deleteRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
         [tableView endUpdates];
     }
 }
 
+// Show contact detail view
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    ContactsDataEntity *contact = self.filteredContacts[indexPath.row];
+
+    ContactDetailViewWrapper *wrapper = [[ContactDetailViewWrapper alloc] initWithContact:contact];
+    UIViewController *detailVC = [wrapper makeViewController];
+    detailVC.modalPresentationStyle = UIModalPresentationFullScreen;
+    [self presentViewController:detailVC animated:YES completion:nil];
+}
+
+// Update search
+- (void)updateSearchResultsForSearchController:(UISearchController *)searchController {
+    [self updateFilteredContacts];
+    
+    [self.tableView reloadData];
+}
+
+- (void)updateFilteredContacts {
+    NSString *searchText = self.searchController.searchBar.text;
+    
+    if (searchText == nil || searchText.length == 0) {
+        self.filteredContacts = self.contacts;
+    } else {
+        NSPredicate *predicate = [NSPredicate predicateWithBlock:^BOOL(ContactsDataEntity *evaluatedObject, NSDictionary *bindings) {
+            NSString *searchLower = [searchText lowercaseString];
+            
+            BOOL matchesFirstName = [[evaluatedObject.firstName lowercaseString] containsString:searchLower];
+            BOOL matchesLastName = [[evaluatedObject.lastName lowercaseString] containsString:searchLower];
+            BOOL matchesPhone = [[evaluatedObject.phoneNumber lowercaseString] containsString:searchLower];
+            
+            return matchesFirstName || matchesLastName || matchesPhone;
+        }];
+        self.filteredContacts = [self.contacts filteredArrayUsingPredicate:predicate];
+    }
+}
 
 @end

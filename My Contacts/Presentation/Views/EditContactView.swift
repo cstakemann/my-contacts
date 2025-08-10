@@ -1,36 +1,42 @@
 //
-//  AddContactView.swift
+//  EditContactView.swift
 //  My Contacts
 //
 //  Created by Cosme Stakemann on 9/8/25.
 //
 
-
-
 import SwiftUI
 
-struct AddContactView: View {
-    @Environment(\.presentationMode) var presentationMode
+struct EditContactView: View {
     @ObservedObject var viewModel: ContactViewModel
-    
-    @State private var firstName: String = ""
-    @State private var lastName: String = ""
-    @State private var phoneNumber: String = ""
-    @State private var imageUrl: String = ""
+    @State var firstName: String
+    @State var lastName: String
+    @State var phoneNumber: String
+    @State var imageUrl: String
     @State private var isValidNumber: Bool = true
     @State private var isLoading: Bool = false
-    @State private var isImageLoaded: Bool = false
+    
+    let contact: ContactsDataEntity
+    var onSave: (() -> Void)?
+    
+    @Environment(\.presentationMode) var presentationMode
+
+    init(viewModel: ContactViewModel, contact: ContactsDataEntity, onSave: (() -> Void)? = nil) {
+        self.viewModel = viewModel
+        self.contact = contact
+        self.onSave = onSave
+        
+        _firstName = State(initialValue: contact.firstName ?? "")
+        _lastName = State(initialValue: contact.lastName ?? "")
+        _phoneNumber = State(initialValue: contact.phoneNumber ?? "")
+        _imageUrl = State(initialValue: contact.imageUrl ?? "")
+    }
     
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
-                if isImageLoaded {
-                    CardImage(imageUrl: imageUrl)
-                        .padding(.top, 20)
-                } else {
-                    ProgressView()
-                        .frame(width: 150, height: 150)
-                }
+                CardImage(imageUrl: contact.imageUrl ?? "")
+                    .padding(.top, 20)
                 
                 Form {
                     Section(header: Text("Name")) {
@@ -52,54 +58,38 @@ struct AddContactView: View {
                 .scrollContentBackground(.hidden)
             }
             .background(Color.gray.opacity(0.1))
-            .navigationTitle("Add Contact")
+            .navigationTitle("Edit Contact")
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarItems(
                 leading: Button("Cancel") {
                     presentationMode.wrappedValue.dismiss()
                 },
                 trailing: trailingView()
-                
             )
         }
-        .onAppear {
-            Task {
-                isImageLoaded = false
-                let image = await viewModel.getImageUrl()
-                imageUrl = image ?? ""
-                isImageLoaded = true
-            }
-        }
     }
-
     
     @ViewBuilder
     func trailingView() -> some View {
         if isLoading {
             ProgressView()
         } else {
-            Button(action: {
-                isLoading = true
+            Button("Save") {
                 isValidNumber = true
+                isLoading = true
                 if !viewModel.validatePhoneNumber(phoneNumber: phoneNumber) {
                     isValidNumber = false
                     isLoading = false
                     return
                 }
-                
                 Task {
-                    await viewModel.addContact(
-                        firstName: firstName,
-                        lastName: lastName,
-                        phoneNumber: phoneNumber,
-                        imageUrl: imageUrl
-                    )
+                    await viewModel.updateContact(contact: contact, firstName: firstName, lastName: lastName, phoneNumber: phoneNumber, imageUrl: imageUrl)
                     presentationMode.wrappedValue.dismiss()
-                    isLoading = true
+                    isLoading = false
+                    onSave?()
                 }
-            }, label: {
-                Text("Save")
-            })
+
+            }
             .disabled(firstName.isEmpty || lastName.isEmpty || phoneNumber.isEmpty)
         }
     }

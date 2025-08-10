@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		0BE5AE0C2E481D4100B4B8CA /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 0BE5AE0B2E481D4100B4B8CA /* Kingfisher */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		0BE5ADB92E47E5A200B4B8CA /* My Contacts.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "My Contacts.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -36,6 +40,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0BE5AE0C2E481D4100B4B8CA /* Kingfisher in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +83,7 @@
 			);
 			name = "My Contacts";
 			packageProductDependencies = (
+				0BE5AE0B2E481D4100B4B8CA /* Kingfisher */,
 			);
 			productName = "My Contacts";
 			productReference = 0BE5ADB92E47E5A200B4B8CA /* My Contacts.app */;
@@ -107,6 +113,9 @@
 			);
 			mainGroup = 0BE5ADB02E47E5A200B4B8CA;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				0BE5AE0A2E481D4100B4B8CA /* XCRemoteSwiftPackageReference "Kingfisher" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 0BE5ADBA2E47E5A200B4B8CA /* Products */;
 			projectDirPath = "";
@@ -337,6 +346,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		0BE5AE0A2E481D4100B4B8CA /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/onevcat/Kingfisher.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.5.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0BE5AE0B2E481D4100B4B8CA /* Kingfisher */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0BE5AE0A2E481D4100B4B8CA /* XCRemoteSwiftPackageReference "Kingfisher" */;
+			productName = Kingfisher;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 0BE5ADB12E47E5A200B4B8CA /* Project object */;
 }
