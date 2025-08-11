@@ -7,6 +7,7 @@
 
 #import "ViewController.h"
 #import "My_Contacts-Swift.h"
+#import "AppDelegate.h"
 @import SwiftUI;
 
 @interface ViewController () <UITableViewDelegate, UITableViewDataSource, UISearchResultsUpdating>
@@ -25,13 +26,13 @@ NSString *cellId = @"cellId";
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    self.viewModel = [ContactViewModel shared];
+//    self.viewModel = [ContactViewModel shared];
+    AppDelegate *appDelegate = (AppDelegate *)UIApplication.sharedApplication.delegate;
+    self.viewModel = [appDelegate getContactViewModel];
     
     [self setupNavigationItems];
     
     [self.tableView registerClass:UITableViewCell.class forCellReuseIdentifier:cellId];
-    
-    [self loadContacts];
 
     self.contacts = [self.viewModel getContacts];
     self.filteredContacts = self.contacts;
@@ -50,10 +51,6 @@ NSString *cellId = @"cellId";
                                              selector:@selector(handleContactsUpdate) name:@"contactsDidUpdate"
                                                object:nil];
     
-}
-
-- (void)loadContacts {
-    [self.tableView reloadData];
 }
 
 -(void)handleContactsUpdate {
@@ -149,7 +146,7 @@ forRowAtIndexPath:(NSIndexPath *)indexPath {
         
         ContactsDataEntity *contactToDelete = self.filteredContacts[indexPath.row];
         
-        [self.viewModel deleteContact:contactToDelete.id];
+        [self.viewModel deleteContact:contactToDelete];
         self.contacts = [self.viewModel getContacts];
         
         [self updateFilteredContacts];

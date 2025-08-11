@@ -10,14 +10,16 @@ import UIKit
 import Foundation
 
 @MainActor
-class CoreDataDatasource: ContactProtocol {
+@objc class CoreDataDatasource: NSObject, ContactProtocol {
     private let context: NSManagedObjectContext
     
-    init(context: NSManagedObjectContext) {
+    @objc override init() {
         guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else {
             fatalError("No se pudo obtener AppDelegate")
         }
         self.context = appDelegate.persistentContainer.viewContext
+        
+        super.init()
     }
     
     func fetchContacts() throws -> [ContactsDataEntity] {
@@ -25,15 +27,36 @@ class CoreDataDatasource: ContactProtocol {
         return try context.fetch(request)
     }
     
-    func addContact(firstName: String, lastName: String, phoneNumber: String, imageUrl: String?) async {
+    func addContact(firstName: String, lastName: String, phoneNumber: String, imageUrl: String?) throws {
+        let newContact = ContactsDataEntity(context: context)
+        newContact.id = UUID()
+        newContact.firstName = firstName
+        newContact.lastName = lastName
+        newContact.phoneNumber = phoneNumber
+        newContact.imageUrl = imageUrl
         
+        try saveContext()
     }
     
-    func deleteContact(_ id: UUID) {
-        
+    func deleteContact(contact: ContactsDataEntity) throws {
+        context.delete(contact)
+        try saveContext()
     }
     
-    func updateContact(contact: ContactsDataEntity, firstName: String, lastName: String, phoneNumber: String, imageUrl: String?) async {
+    func updateContact(contact: ContactsDataEntity, firstName: String, lastName: String, phoneNumber: String, imageUrl: String?) throws {
+        contact.firstName = firstName
+        contact.lastName = lastName
+        contact.phoneNumber = phoneNumber
+        contact.imageUrl = imageUrl
         
+        try saveContext()
+    }
+    
+    private func saveContext() {
+        do {
+            try context.save()
+        } catch {
+            print("Error saving context: \(error)")
+        }
     }
 }

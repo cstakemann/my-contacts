@@ -11,16 +11,12 @@ import UIKit
 
 @MainActor
 @objc class ContactViewModel: NSObject, ObservableObject {
-    @objc static let shared = ContactViewModel()
+    private let contactRepository: ContactProtocol
     @Published var contacts: [ContactsDataEntity] = []
     
-    private let context: NSManagedObjectContext
-    
-    override init() {
-        guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else {
-            fatalError("No se pudo obtener AppDelegate")
-        }
-        self.context = appDelegate.persistentContainer.viewContext
+    @objc init(_contactRepository: ContactProtocol) {
+        
+        self.contactRepository = _contactRepository
         
         super.init()
         
@@ -32,10 +28,8 @@ import UIKit
     }
     
     func fetchContacts() {
-        let request: NSFetchRequest<ContactsDataEntity> = ContactsDataEntity.fetchRequest()
-        
         do {
-            contacts = try context.fetch(request)
+            contacts = try contactRepository.fetchContacts()
             NotificationCenter.default.post(name: .contactsDidUpdate, object: nil)
         } catch {
             print("Error fetching contacts: \(error)")
@@ -44,39 +38,38 @@ import UIKit
     }
     
     func addContact(firstName: String, lastName: String, phoneNumber: String, imageUrl: String? = "") async {
-
-        let newContact = ContactsDataEntity(context: context)
-        newContact.id = UUID()
-        newContact.firstName = firstName
-        newContact.lastName = lastName
-        newContact.phoneNumber = phoneNumber
-        if let image = await saveImage(imageUrl: imageUrl ?? "") {
-            newContact.imageUrl = image
-        }
-        
-        saveContext()
-        fetchContacts()
-    }
-    
-    @objc func deleteContact(_ id: UUID) {
-        if let contactToDelete = contacts.first(where: { $0.id == id }) {
-            context.delete(contactToDelete)
-            saveContext()
+        do {
+            let image: String = await saveImage(imageUrl: imageUrl ?? "") ?? ""
+            
+            try contactRepository.addContact(firstName: firstName, lastName: lastName, phoneNumber: phoneNumber, imageUrl: image)
+            
             fetchContacts()
+        } catch {
+            print("Error adding contact: \(error)")
+        }
+    }
+
+    @objc func deleteContact(_ contactToDelete: ContactsDataEntity) {
+        do {
+            try contactRepository.deleteContact(contact: contactToDelete)
+            fetchContacts()
+        } catch {
+            print("Error delete contact: \(error)")
         }
     }
     
     func updateContact(contact: ContactsDataEntity, firstName: String, lastName: String, phoneNumber: String, imageUrl: String? = "") async {
-
-        contact.firstName = firstName
-        contact.lastName = lastName
-        contact.phoneNumber = phoneNumber
-        if let image = await saveImage(imageUrl: imageUrl ?? "") {
-            contact.imageUrl = image
+        
+        do {
+            let image: String = await saveImage(imageUrl: imageUrl ?? "") ?? ""
+            
+            try contactRepository.updateContact(contact: contact, firstName: firstName, lastName: lastName, phoneNumber: phoneNumber, imageUrl: image)
+            
+            fetchContacts()
+        } catch {
+            print("Error update contact: \(error)")
         }
-
-        saveContext()
-        fetchContacts()
+        
     }
     
     func saveImage(imageUrl: String = "") async -> String? {
@@ -86,14 +79,6 @@ import UIKit
         }
         
         return imageUrl
-    }
-    
-    private func saveContext() {
-        do {
-            try context.save()
-        } catch {
-            print("Error saving context: \(error)")
-        }
     }
     
     func validatePhoneNumber(phoneNumber: String) -> Bool {
@@ -118,7 +103,7 @@ import UIKit
             return nil
         }
     }
-
+    
 }
 
 extension Notification.Name {

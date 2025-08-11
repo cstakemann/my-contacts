@@ -6,9 +6,9 @@
 //
 
 #import "AppDelegate.h"
+#import "My_Contacts-Swift.h"
 
 @interface AppDelegate ()
-
 @end
 
 @implementation AppDelegate
@@ -16,7 +16,21 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     // Override point for customization after application launch.
+    
+    // Init Dependency Injection
+    CoreDataDatasource *dataSource = [[CoreDataDatasource alloc] init];
+    self.contactRepository = [[ContactRepository alloc] initWith_dataSource:dataSource];
+    self.contactViewModel = [[ContactViewModel alloc] initWith_contactRepository:self.contactRepository];
+    
     return YES;
+}
+
+//- (ContactRepository *)getContactRepository {
+//    return self.contactRepository;
+//}
+
+- (ContactViewModel *)getContactViewModel {
+    return self.contactViewModel;
 }
 
 

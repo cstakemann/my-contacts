@@ -11,10 +11,14 @@ import SwiftUI
 @MainActor
 @objc class ContactDetailViewWrapper: NSObject {
     private let contact: ContactsDataEntity
-    private let viewModel = ContactViewModel.shared
+    private let viewModel: ContactViewModel
     
     @objc init(contact: ContactsDataEntity) {
         self.contact = contact
+        guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else {
+            fatalError("No AppDelegate found")
+        }
+        self.viewModel = appDelegate.contactViewModel
         super.init()
     }
     
